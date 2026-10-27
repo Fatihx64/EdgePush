@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -11,8 +11,8 @@ using System.Threading;
 
 [assembly:System.Reflection.AssemblyTitle("EdgePush")]
 [assembly:System.Reflection.AssemblyProduct("EdgePush")]
-[assembly:System.Reflection.AssemblyVersion("1.0.0.0")]
-[assembly:System.Reflection.AssemblyFileVersion("1.0.0.0")]
+[assembly:System.Reflection.AssemblyVersion("1.0.1.0")]
+[assembly:System.Reflection.AssemblyFileVersion("1.0.1.0")]
 
 namespace EdgePush {
 static class Native {
@@ -131,12 +131,22 @@ sealed class Overlay : Form {
   if(!Visible)Show();Native.UpdateLayeredWindow(Handle,IntPtr.Zero,ref pos,ref size,dc,ref origin,0,ref blend,2);
  }
  public static Color Hue(float value){value=value-(float)Math.Floor(value);float scaled=value*6;int sector=(int)scaled;int f=(int)((scaled-sector)*255);switch(sector){case 0:return Color.FromArgb(255,f,50);case 1:return Color.FromArgb(255-f,255,50);case 2:return Color.FromArgb(50,255,f);case 3:return Color.FromArgb(50,255-f,255);case 4:return Color.FromArgb(f,50,255);default:return Color.FromArgb(255,50,255-f);}}
+ static Bitmap gradientSurface;static byte[] gradientPixels;
+ static void DrawGradient(Graphics g,bool vertical,float start,float end,float seam,float pressure,float phase,float fade,int direction){
+  // Explicit premultiplied pixels avoid the repeating brush's leading-edge seam.
+  const int depth=96;int length=Math.Max(1,(int)Math.Ceiling(end-start));int width=vertical?depth:length,height=vertical?length:depth;
+  if(gradientSurface==null||gradientSurface.Width!=width||gradientSurface.Height!=height){if(gradientSurface!=null)gradientSurface.Dispose();gradientSurface=new Bitmap(width,height,System.Drawing.Imaging.PixelFormat.Format32bppPArgb);gradientPixels=new byte[width*height*4];}
+  Array.Clear(gradientPixels,0,gradientPixels.Length);float spread=20+60*pressure;
+  for(int axis=0;axis<length;axis++){Color c=Hue(axis/(float)length*.65f+phase*.06f);
+   for(int across=0;across<depth;across++){float distance=direction>0?depth-1-across:across;float u=Math.Max(0,Math.Min(1,1-distance/spread));int alpha=(int)((110+120*pressure)*fade*u*u*(3-2*u));int x=vertical?across:axis,y=vertical?axis:across;int i=(y*width+x)*4;gradientPixels[i]=(byte)(c.B*alpha/255);gradientPixels[i+1]=(byte)(c.G*alpha/255);gradientPixels[i+2]=(byte)(c.R*alpha/255);gradientPixels[i+3]=(byte)alpha;}
+  }
+  var data=gradientSurface.LockBits(new Rectangle(0,0,width,height),System.Drawing.Imaging.ImageLockMode.WriteOnly,System.Drawing.Imaging.PixelFormat.Format32bppPArgb);try{Marshal.Copy(gradientPixels,0,data.Scan0,gradientPixels.Length);}finally{gradientSurface.UnlockBits(data);}
+  int cross=(int)Math.Round(direction>0?seam-depth:seam+1);g.DrawImageUnscaled(gradientSurface,vertical?cross:(int)start,vertical?(int)start:cross);
+ }
  public static void Reference(Graphics g,Settings cfg,bool vertical,float start,float end,float seam,float mouse,float pressure,float phase,float arrival,int direction){
   float fade=arrival<0?1:1-arrival;float gap=arrival<0?0:25+120*arrival;int thickness=cfg.thickness;
   if(cfg.effect==9){
-   float width=20+60*pressure;for(float axis=start;axis<end;axis+=4){Color c=Hue((axis-start)/(end-start)*.65f+phase*.06f);float a=seam-direction*width,b=seam;RectangleF rect=vertical?new RectangleF(Math.Min(a,b),axis,width,4):new RectangleF(axis,Math.Min(a,b),4,width);using(var brush=new LinearGradientBrush(rect,Color.Transparent,c,vertical?0:90)){
-    var blend=new ColorBlend();blend.Positions=new[]{0f,.35f,.8f,1f};int alpha=(int)((110+120*pressure)*fade);Color tint=Color.FromArgb(alpha,c);blend.Colors=direction>0?new[]{Color.FromArgb(0,c),Color.FromArgb(alpha/5,c),tint,tint}:new[]{tint,tint,Color.FromArgb(alpha/5,c),Color.FromArgb(0,c)};brush.InterpolationColors=blend;g.FillRectangle(brush,rect);
-   }}
+   DrawGradient(g,vertical,start,end,seam,pressure,phase,fade,direction);
   }else if(cfg.effect==8){
    var rainbowState=g.Save();g.SetClip(vertical?new RectangleF(direction>0?0:seam+1,0,direction>0?Math.Max(0,seam-1):100000,100000):new RectangleF(0,direction>0?0:seam+1,100000,direction>0?Math.Max(0,seam-1):100000));Color[] spectrum={Color.FromArgb(255,100,95),Color.FromArgb(255,200,90),Color.FromArgb(225,245,100),Color.FromArgb(100,235,165),Color.FromArgb(85,190,255),Color.FromArgb(160,105,255)};
    for(int band=0;band<spectrum.Length;band++){
@@ -310,6 +320,7 @@ static class Program {
  [STAThread] static void Main(string[] args){
   if(Array.IndexOf(args,"--diagnostics")>=0){Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);Application.ThreadException+=delegate(object sender,ThreadExceptionEventArgs e){File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"diagnostics-error.txt"),e.Exception.ToString());Environment.Exit(1);};AppDomain.CurrentDomain.UnhandledException+=delegate(object sender,UnhandledExceptionEventArgs e){File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"diagnostics-error.txt"),e.ExceptionObject.ToString());};}
 
+  if(Array.IndexOf(args,"--gradient-test")>=0){Tests.Gradient();return;}
   if(Array.IndexOf(args,"--clock-test")>=0){Tests.Clocks();return;}
   if(Array.IndexOf(args,"--self-test")>=0){Tests.Run();return;}
   if(Array.IndexOf(args,"--diagnostics")>=0){
@@ -357,6 +368,13 @@ static class Program {
  }
 }
 static class Tests {
+ public static void Gradient(){var cfg=new Settings{effect=9};int checks=0;
+  foreach(int dir in new[]{1,-1})foreach(float phase in new[]{0f,.2f,.5f,1f})using(var image=new Bitmap(320,240,System.Drawing.Imaging.PixelFormat.Format32bppPArgb))using(var graphics=Graphics.FromImage(image)){
+   Overlay.Reference(graphics,cfg,true,0,240,160,120,.8f,phase,-1,dir);bool smooth=true,clear=true;
+   for(int y=0;y<240;y++){int previous=0;for(int distance=95;distance>=0;distance--){int x=dir>0?159-distance:161+distance;int alpha=image.GetPixel(x,y).A;if(alpha<previous)smooth=false;previous=alpha;}for(int x=0;x<320;x++){if((dir>0&&x>=160)||(dir<0&&x<=160))clear&=image.GetPixel(x,y).A==0;}}
+   if(!smooth||!clear)throw new Exception("Gradient leading-edge seam detected");checks++;
+  }File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"gradient-test.txt"),checks+" phase/direction gradient checks passed: monotonic alpha and no extra leading/destination line");
+ }
  public static void Clocks(){var rates=new[]{15,30,60,120};int index=0,count=0;var report=new System.Text.StringBuilder();var elapsed=new Stopwatch();using(var clock=new AnimationClock())using(var sample=new System.Windows.Forms.Timer{Interval=700})using(var context=new ApplicationContext()){
   clock.Tick+=delegate{count++;};Action begin=delegate{count=0;clock.Fps=rates[index];elapsed.Restart();clock.Start();};sample.Tick+=delegate{clock.Stop();elapsed.Stop();if(count<2)throw new Exception("Animation clock did not run");report.AppendLine(rates[index]+" FPS target: "+Math.Round(count/elapsed.Elapsed.TotalSeconds,1)+" callbacks/s");index++;if(index==rates.Length){sample.Stop();context.ExitThread();}else begin();};begin();sample.Start();Application.Run(context);File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"clock-test.txt"),report.ToString());
  }}

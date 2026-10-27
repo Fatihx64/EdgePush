@@ -1,4 +1,4 @@
-# Validation
+﻿# Validation
 
 Release candidate: 1.0.0, checked locally on Windows x64 on 2026-10-27.
 
@@ -27,10 +27,17 @@ The runtime does not use telemetry or make network requests. The optional sign-i
 
 ## Reproduce
 
-Close a running EdgePush instance, then run `test.ps1` from a writable checkout. Reports and images are written to ignored `dist/`. The normal executable starts in the tray; use its Exit menu to stop it.
+Close a running EdgePush instance, then run `source/test.ps1` from a writable checkout. Reports and images are written to ignored `source/dist/`. The normal executable starts in the tray; use its Exit menu to stop it.
 
 ## Türkçe
 
 Geometri, çapraz köşe hareketleri, çift yönlü slider/sayı eşlemesi, iki dil, renk seçiminin etkinliği, dört FPS seçimi ve çarpıyla tepsiye gizlenme otomatik kontrol edildi. Tam ekran kenarının iki ucunda çizilmiş piksel bulundu; Rainbow'un karşı ekran tarafında ek kontur olmadığı doğrulandı.
 
 Başlangıç özelliği test sırasında açılmaz. Gerçek oturum kapatma/açma, her fare sürücüsü, DPI düzeni, oyun ve UAC senaryosu doğrulanmış değildir. Zamanlayıcı hızı gerçek çizilmiş kare hızı olarak sunulmaz.
+
+## 1.0.1 gradient correction
+
+Gradient glow now uses a cached premultiplied pixel surface instead of repeating four-pixel brushes. Its leading edge fades continuously without a tiled brush seam. Generated local test outputs and duplicate packages were moved out of the application directory. Development files are grouped under source/.
+
+
+Eight gradient phase/direction cases assert monotonically increasing alpha toward the source edge and zero destination-side pixels. All existing geometry, settings, rendering and clock tests passed after the folder reorganization.

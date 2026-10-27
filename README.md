@@ -4,7 +4,7 @@ A small Windows utility that adds resistance and visual effects when your mouse 
 
 **[Download the latest Windows release](https://github.com/Fatihx64/EdgePush/releases/latest)** · [Türkçe](#türkçe) · [MIT license](LICENSE)
 
-![Edge effect examples](assets/readme/effects.png)
+![Edge effect examples](source/assets/readme/effects.png)
 
 ## Get started
 
@@ -19,7 +19,7 @@ Requirements: Windows 10/11 x64 and .NET Framework 4.8. No Python, browser engin
 
 ## Settings
 
-![English settings](assets/readme/settings-en.png)
+![English settings](source/assets/readme/settings-en.png)
 
 | Setting | What it changes |
 | --- | --- |
@@ -52,20 +52,24 @@ Effects use a narrow transparent GDI+ overlay. The animation clock is stopped wh
 
 This is a local multi-monitor utility, not a network KVM. Secure desktops/UAC, elevated applications, exclusive fullscreen games, sleep/resume and every mixed-DPI layout have not been exhaustively verified. Absolute or injected pointer events are passed through; those input methods can bypass resistance. No telemetry or background network service is included.
 
-See [validation details](docs/VALIDATION.md) for the tested scenarios and their limits. [High-resolution waitable timers](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createwaitabletimerexw) require Windows 10 version 1803 or later; older versions use the fallback.
+See [validation details](source/docs/VALIDATION.md) for the tested scenarios and their limits. [High-resolution waitable timers](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createwaitabletimerexw) require Windows 10 version 1803 or later; older versions use the fallback.
+
+## Folder layout
+
+Everyday files are kept at the top level: `EdgePush.exe`, `click.wav`, `settings.json`, README and license. Development code, assets, scripts and validation are under `source/`. Build output stays in ignored `source/dist/`.
 
 ## Build and test
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File build.ps1
-powershell -ExecutionPolicy Bypass -File test.ps1
+powershell -ExecutionPolicy Bypass -File source/build.ps1
+powershell -ExecutionPolicy Bypass -File source/test.ps1
 ```
 
-The build uses the C# compiler included with .NET Framework. No package restore or network access is needed. Output is `dist/EdgePush.exe`; the build also copies the transition sound there. Run the built executable with `--settings` to open Settings immediately.
+The build uses the C# compiler included with .NET Framework. No package restore or network access is needed. Output is `source/dist/EdgePush.exe`; the build also copies the transition sound there. Run the built executable with `--settings` to open Settings immediately.
 
 Developer checks: `--self-test` tests geometry, `--diagnostics` tests settings and rendering, and `--clock-test` samples animation-clock callbacks. They write reports beside the tested executable and should be run in a writable test folder. The tests do not enable Windows startup.
 
-Source: `src/EdgePush.cs`. Icon: `assets/EdgePush.ico`; regenerate it with `make-icon.ps1`. Contributions and reproducible bug reports are welcome. For a boundary issue, include display resolutions, relative placement, scaling percentages, direction and selected resistance; do not include private desktop screenshots.
+Source: `source/EdgePush.cs`. Icon: `source/assets/EdgePush.ico`; regenerate it with `source/make-icon.ps1`. Contributions and reproducible bug reports are welcome. For a boundary issue, include display resolutions, relative placement, scaling percentages, direction and selected resistance; do not include private desktop screenshots.
 
 ## Türkçe
 
@@ -73,7 +77,7 @@ EdgePush, **aynı bilgisayara bağlı ekranlar** arasında fare geçişine diren
 
 **[Son Windows sürümünü indir](https://github.com/Fatihx64/EdgePush/releases/latest)**, ZIP'i yazılabilir bir klasöre çıkar ve `EdgePush.exe` dosyasını çalıştır. Uygulama sistem tepsisinde başlar; simgeye çift tıklayarak ayarları aç. Varsayılan dil İngilizcedir; sağ üstten Türkçe seçilebilir.
 
-![Türkçe ayarlar](assets/readme/settings-tr.png)
+![Türkçe ayarlar](source/assets/readme/settings-tr.png)
 
 Fareyi ortak ekran sınırına doğru ittikçe basınç birikir. Direnç aşılınca karşı ekrana geçilir. İzin verildiğinde Ctrl ile serbestçe geçilebilir. Ayarlar penceresindeki **×**, uygulamayı tepsiye gizler; tamamen kapatmak için tepsi menüsünden **Çıkış** seçilir.
 
@@ -88,4 +92,5 @@ Windows 10/11 x64 ve .NET Framework 4.8 gerekir. Normal kullanımda yönetici iz
 
 Efektler boşta sürekli çizilmez. FPS, donanım ve Windows zamanlamasıyla sınırlı bir hedeftir. Ağ üzerinden başka bilgisayara geçiş yapılmaz. UAC, oyunlar, uyku sonrası ve tüm karma DPI düzenleri kapsamlı biçimde test edilmiş değildir. Enjekte edilen veya mutlak konum kullanan fare girdileri dirençten geçebilir.
 
-Derlemek için yukarıdaki `build.ps1`, kontroller için `test.ps1` komutlarını kullanın. Kaynak kod MIT lisansıyla açıktır; [doğrulama notları](docs/VALIDATION.md) test kapsamını ve sınırlarını açıklar.
+Derlemek için yukarıdaki `source/build.ps1`, kontroller için `source/test.ps1` komutlarını kullanın. Kaynak kod MIT lisansıyla açıktır; [doğrulama notları](source/docs/VALIDATION.md) test kapsamını ve sınırlarını açıklar.
+
