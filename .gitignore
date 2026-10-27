@@ -1,0 +1,16 @@
+/dist/
+/EdgePush.exe
+/click.wav
+/settings.json
+/settings.json.tmp
+/*test*.txt
+/diagnostics-error.txt
+/settings-*.png
+/effect-*.png
+/arrival-*.png
+/full-height-test.png
+/horizontal-rainbow.png
+/rainbow-no-outline.png
+/.temp/
+/.legacy/
+/docs/measurements*.json
